@@ -1,0 +1,194 @@
+
+-- UST --
+create type Person as object(
+	name varchar(10),
+	age number(2)
+)
+/
+
+create table Person_Table of Person;
+
+insert into Person_Table values ('Ashen',22);
+insert into Person_Table values (Person('Janani',20));
+
+select * from Person_Table
+
+
+-- VARRAYS --
+
+create type Phone_Array as varray(10) of char(10);
+
+create table Contact_Table(
+	name varchar(10) primary key,
+	phones Phone_Array
+)
+/
+
+insert into Contact_Table values('Ashen',Phone_Array('0774242191','0788270128','0771009669','0663661530'));
+
+select * from Contact_Table;
+
+select c.name,p.column_value Phone
+from Contact_Table c, table(c.phones) p
+/
+
+--Nested Tables--
+
+create type car as object (
+	model varchar(20),
+	engine varchar(10)
+)
+/
+
+create type car_table as table of car
+/
+
+create table brand_table(
+	brand varchar(20) primary key,
+	cars car_table
+)
+nested table cars store as car_nes
+/
+
+insert into brand_table values(
+	'Ferrari',
+	car_table(
+		car('458 Italia','V8'),
+		car('488 GTB','V8 Turbo'),
+		car('California','V8')
+	)	
+)
+/
+
+insert into brand_table values(
+	'Lamborghini',
+	car_table(
+		car('Aventador','V12'),
+		car('Gallardo','V8'),
+		car('Reventon','V12')
+	)	
+)
+/
+
+insert into brand_table values(
+	'Nissan',
+	car_table(
+		car('Skyline','V6'),
+		car('Leaf','Electric'),
+		car('370Z','V6')
+	)	
+)
+/
+
+select * from brand_table
+/
+
+select b.brand,c.*
+from brand_table b, table(b.cars) c
+/
+
+select b.model
+from table (select cars from brand_table where brand='Ferrari') b
+where b.engine='V8'
+/
+
+insert into
+table (select cars from brand_table where brand='Ferrari')
+values (car('488 Spider','V8'))
+/
+
+update brand_table
+set cars=null
+where brand='Nissan'
+/
+
+update brand_table
+set cars= car_table(car('Leaf','Electric'))
+where brand='Nissan'
+/
+
+-- Member Functions
+
+create type Calculator as object (
+	input float,
+	input2 float,
+	member function mulInput1(mul in float)
+		return float
+)
+/
+
+create type body Calculator as 
+	member function mulInput1(mul in float)
+	return float as
+	begin
+		return self.input*mul;
+	end;
+end;
+/
+
+create table Cal_Table of Calculator
+/
+
+insert into Cal_Table values (Calculator(15,20))
+insert into Cal_Table values (Calculator(12,24))
+
+select t.input,t.mulInput1(125)
+from Cal_Table t
+/
+
+-- Inheritance --
+
+create type Vehicle as object (
+	brand varchar(20),
+	type varchar(20)
+) not final;
+/
+
+create type SUV under Vehicle(
+	model varchar(20),
+	horsePower number(6,3)
+) not final;
+
+
+create type Van under Vehicle(
+	model varchar(20),
+	doors number(2)
+)
+/
+
+create type Cab under SUV (
+	capasity number(6,3)
+)
+/
+
+create table Vehicle_Table of Vehicle
+
+insert into Vehicle_Table values(SUV('Toyota','Off Road','Prado',500))
+insert into Vehicle_Table values(Van('mazda','Delivery','Bongo',5))
+insert into Vehicle_Table values(Cab('Nissan','Truck','Navara',389,600))
+
+select value(v) from Vehicle_Table v
+
+select value(v) 
+from Vehicle_Table v
+where value(v) is of (SUV)
+
+select value(v) 
+from Vehicle_Table v
+where value(v) is of (only SUV)
+
+-- Cursers --
+
+set serveroutput on
+declare
+	curser cur_lol is
+	select value(v) 
+	from Vehicle_Table v
+	where value(v) is of (SUV);
+begin
+	for lole in cur_lol
+	loop
+		dbms_output.put_line("aaa")
+	end loop;
+end;
+/
